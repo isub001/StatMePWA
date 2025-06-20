@@ -39,12 +39,21 @@ function updatePosition(position) {
       lastPosition.latitude, lastPosition.longitude,
       latitude, longitude
     );
-    totalDistance += dist;
-    document.getElementById("distance").textContent = totalDistance.toFixed(2);
 
+    // 📌 Ignore tiny position jitters under 5m
+    if (dist >= 5) {
+      totalDistance += dist;
+      document.getElementById("distance").textContent = totalDistance.toFixed(2);
+    }
+
+    // 📌 Calculate speed either from GPS or fallback
     let currentSpeed = speed ? (speed * 3.6) : (dist / (elapsedTime || 1)) * 3.6;
-    if (currentSpeed > topSpeed) topSpeed = currentSpeed;
-    document.getElementById("topSpeed").textContent = topSpeed.toFixed(2);
+
+    // 📌 Ignore unrealistically high spikes
+    if (currentSpeed > 1 && currentSpeed < 45) {
+      if (currentSpeed > topSpeed) topSpeed = currentSpeed;
+      document.getElementById("topSpeed").textContent = topSpeed.toFixed(2);
+    }
   }
 
   lastPosition = { latitude, longitude };
@@ -55,7 +64,7 @@ function handleError(error) {
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000; // metres
+  const R = 6371000;
   const toRad = (x) => x * Math.PI / 180;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
