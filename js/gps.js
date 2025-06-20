@@ -4,6 +4,7 @@ let elapsedTime = 0;
 let totalDistance = 0;
 let topSpeed = 0;
 let lastPosition = null;
+let lastTimestamp = null;
 let timerInterval;
 let totalSpeedSum = 0;
 let speedReadings = 0;
@@ -32,13 +33,14 @@ function updateTime() {
   elapsedTime = Math.floor((Date.now() - startTime) / 1000);
   document.getElementById("time").textContent = elapsedTime;
 
-  // Update average speed live
+  // Update average speed
   let avgSpeed = speedReadings > 0 ? (totalSpeedSum / speedReadings).toFixed(2) : 0;
   document.getElementById("avgSpeed").textContent = avgSpeed;
 }
 
 function updatePosition(position) {
   const { latitude, longitude, speed } = position.coords;
+  const currentTimestamp = position.timestamp;
 
   if (lastPosition) {
     const dist = haversine(
@@ -46,29 +48,31 @@ function updatePosition(position) {
       latitude, longitude
     );
 
-    // Ignore tiny GPS jitters under 5m
-    if (dist >= 5) {
+    const timeDiff = (currentTimestamp - lastTimestamp) / 1000; // in seconds
+
+    if (dist >= 3 && timeDiff >= 0.5) { // avoid tiny GPS jitters
       totalDistance += dist;
       document.getElementById("distance").textContent = totalDistance.toFixed(2);
-    }
 
-    // Instant current speed (either from GPS or calculated from dist + time)
-    let currentSpeed = speed ? (speed * 3.6) : (dist / 1) * 3.6;  // m/s to km/h assuming 1s fix rate
+      let currentSpeed = dist / timeDiff * 3.6; // m/s to km/h
 
-    if (currentSpeed >= 0.5 && currentSpeed <= 250) {  // keep it within sane range
-      document.getElementById("currentSpeed").textContent = currentSpeed.toFixed(2);
+      if (currentSpeed >= 0.5 && currentSpeed <= 250) {
+        document.getElementById("currentSpeed").textContent = currentSpeed.toFixed(2);
 
-      if (currentSpeed > topSpeed) {
-        topSpeed = currentSpeed;
-        document.getElementById("topSpeed").textContent = topSpeed.toFixed(2);
+        if (currentSpeed > topSpeed) {
+          topSpeed = currentSpeed;
+          document.getElementById("topSpeed").textContent = topSpeed.toFixed(2);
+        }
+
+        totalSpeedSum += currentSpeed;
+        speedReadings++;
       }
-
-      totalSpeedSum += currentSpeed;
-      speedReadings++;
     }
   }
 
+  // Save last position and timestamp for next calc
   lastPosition = { latitude, longitude };
+  lastTimestamp = currentTimestamp;
 }
 
 function handleError(error) {
