@@ -5,6 +5,8 @@ let totalDistance = 0;
 let topSpeed = 0;
 let lastPosition = null;
 let timerInterval;
+let totalSpeedSum = 0;
+let speedReadings = 0;
 
 function startTracking() {
   startTime = Date.now();
@@ -29,6 +31,10 @@ function stopTracking() {
 function updateTime() {
   elapsedTime = Math.floor((Date.now() - startTime) / 1000);
   document.getElementById("time").textContent = elapsedTime;
+
+  // Update average speed live
+  let avgSpeed = speedReadings > 0 ? (totalSpeedSum / speedReadings).toFixed(2) : 0;
+  document.getElementById("avgSpeed").textContent = avgSpeed;
 }
 
 function updatePosition(position) {
@@ -40,19 +46,25 @@ function updatePosition(position) {
       latitude, longitude
     );
 
-    // 📌 Ignore tiny position jitters under 5m
+    // Ignore tiny GPS jitters under 5m
     if (dist >= 5) {
       totalDistance += dist;
       document.getElementById("distance").textContent = totalDistance.toFixed(2);
     }
 
-    // 📌 Calculate speed either from GPS or fallback
-    let currentSpeed = speed ? (speed * 3.6) : (dist / (elapsedTime || 1)) * 3.6;
+    // Instant current speed (either from GPS or calculated from dist + time)
+    let currentSpeed = speed ? (speed * 3.6) : (dist / 1) * 3.6;  // m/s to km/h assuming 1s fix rate
 
-    // 📌 Ignore unrealistically high spikes
-    if (currentSpeed > 1 && currentSpeed < 45) {
-      if (currentSpeed > topSpeed) topSpeed = currentSpeed;
-      document.getElementById("topSpeed").textContent = topSpeed.toFixed(2);
+    if (currentSpeed >= 0.5 && currentSpeed <= 250) {  // keep it within sane range
+      document.getElementById("currentSpeed").textContent = currentSpeed.toFixed(2);
+
+      if (currentSpeed > topSpeed) {
+        topSpeed = currentSpeed;
+        document.getElementById("topSpeed").textContent = topSpeed.toFixed(2);
+      }
+
+      totalSpeedSum += currentSpeed;
+      speedReadings++;
     }
   }
 
