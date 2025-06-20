@@ -4,7 +4,7 @@ let elapsedTime = 0;
 let totalDistance = 0;
 let topSpeed = 0;
 let lastPosition = null;
-let lastTimestamp = null;
+let lastUpdateTime = null;
 let timerInterval;
 let totalSpeedSum = 0;
 let speedReadings = 0;
@@ -33,14 +33,14 @@ function updateTime() {
   elapsedTime = Math.floor((Date.now() - startTime) / 1000);
   document.getElementById("time").textContent = elapsedTime;
 
-  // Update average speed
+  // Average speed live
   let avgSpeed = speedReadings > 0 ? (totalSpeedSum / speedReadings).toFixed(2) : 0;
   document.getElementById("avgSpeed").textContent = avgSpeed;
 }
 
 function updatePosition(position) {
-  const { latitude, longitude, speed } = position.coords;
-  const currentTimestamp = position.timestamp;
+  const { latitude, longitude } = position.coords;
+  const currentTime = Date.now();
 
   if (lastPosition) {
     const dist = haversine(
@@ -48,13 +48,14 @@ function updatePosition(position) {
       latitude, longitude
     );
 
-    const timeDiff = (currentTimestamp - lastTimestamp) / 1000; // in seconds
+    const timeDiffSec = (currentTime - lastUpdateTime) / 1000;
 
-    if (dist >= 3 && timeDiff >= 0.5) { // avoid tiny GPS jitters
+    // Only process if at least 1.5s passed and dist > 3m (clean filter)
+    if (timeDiffSec >= 1.5 && dist >= 3) {
       totalDistance += dist;
       document.getElementById("distance").textContent = totalDistance.toFixed(2);
 
-      let currentSpeed = dist / timeDiff * 3.6; // m/s to km/h
+      const currentSpeed = (dist / timeDiffSec) * 3.6; // m/s to km/h
 
       if (currentSpeed >= 0.5 && currentSpeed <= 250) {
         document.getElementById("currentSpeed").textContent = currentSpeed.toFixed(2);
@@ -70,9 +71,8 @@ function updatePosition(position) {
     }
   }
 
-  // Save last position and timestamp for next calc
   lastPosition = { latitude, longitude };
-  lastTimestamp = currentTimestamp;
+  lastUpdateTime = currentTime;
 }
 
 function handleError(error) {
