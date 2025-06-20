@@ -2,7 +2,7 @@
 const ACCURACY_THRESHOLD = 15; // meters
 const MIN_SPEED_THRESHOLD_KMH = 0.5;
 const MAX_SPEED_THRESHOLD_KMH = 250;
-const DISTANCE_INCREMENT_THRESHOLD_M = 5; // New: Ignore tiny jumps below this
+const DISTANCE_INCREMENT_THRESHOLD_M = 2.5; // lowered for small steps + room moves
 
 // --- State Variables ---
 let watchID;
@@ -10,7 +10,7 @@ let startTime;
 let timerInterval;
 
 let elapsedTime = 0;
-let totalDistance = 0;
+let totalDistance = 0; // in meters
 let topSpeed = 0;
 
 let lastPosition = null;
@@ -97,10 +97,10 @@ function updatePosition(position) {
         latitude, longitude
       );
 
-      // New: Ignore tiny positional jitters under threshold
+      // Ignore small GPS jitter — only accept movement above threshold
       if (distanceIncrement >= DISTANCE_INCREMENT_THRESHOLD_M) {
         totalDistance += distanceIncrement;
-        document.getElementById("distance").textContent = (totalDistance / 1000).toFixed(2);
+        document.getElementById("distance").textContent = totalDistance.toFixed(2); // Meters, not KM
       }
     }
 
@@ -134,3 +134,10 @@ function haversine(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
+
+
+
+
+
+
+
